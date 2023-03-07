@@ -47,7 +47,7 @@ func getSpaces() []Space_Result {
 }
 
 func getPages(space Space_Result) []Page {
-	resp := HttpRequest("GET", BASE_URL+"rest/api/space/"+space.Key+"/content")
+	resp := HttpRequest("GET", BASE_URL+"rest/api/space/"+space.Key+"/content?limit=90")
 
 	pages_obj := Page_Response{}
 	jsonErr := json.Unmarshal(resp, &pages_obj)
