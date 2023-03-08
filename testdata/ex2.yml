@@ -1,0 +1,5 @@
+Commit Hash: 1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t
+File Path: docs/privacy-policy.md
+Line Number: 20
+Rule: GitLeaks::Rules::Generic::Email
+Match: johndoe@gmail.com

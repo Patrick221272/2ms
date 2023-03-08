@@ -6,6 +6,10 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+
+	"github.com/spf13/viper"
+	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/detect"
 )
 
 const API_KEY = "<your_api_key>"
@@ -14,11 +18,31 @@ const BASE_URL = "https://checkmarx.atlassian.net/wiki/"
 
 func main() {
 
-	for _, space := range getSpaces() {
+	cfg := config.Config{}
+
+	viper.SetConfigFile("")
+	viper.AddConfigPath(".")
+	viper.SetConfigName(".gitleaks")
+	viper.SetConfigType("toml")
+
+	detector := detect.NewDetector(cfg)
+
+	findings, err := detector.DetectFiles(".")
+	if err != nil {
+		// don't exit on error, just log it
+		fmt.Print(err)
+	}
+	fmt.Print(len(findings))
+
+	for _, value := range findings {
+		fmt.Print("secret - " + value.Secret)
+	}
+
+	/*for _, space := range getSpaces() {
 		for _, page := range getPages(space) {
 			findSecrets(getContent(page))
 		}
-	}
+	}*/
 }
 
 func findSecrets(content string) {
