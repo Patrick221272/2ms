@@ -9,6 +9,7 @@ require (
 	github.com/gitleaks/go-gitdiff v0.8.0 // indirect
 	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lucasjones/reggen v0.0.0-20200904144131-37ba4fa293bb // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
@@ -23,6 +24,7 @@ require (
 	github.com/rs/zerolog v1.26.1 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
+	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.8.1 // indirect
