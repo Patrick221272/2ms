@@ -1,5 +1,0 @@
-Commit Hash: 1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t
-File Path: app/config.yml
-Line Number: 42
-Rule: GitLeaks::Rules::Aws::SecretKey
-Match: AWS_SECRET_ACCESS_KEY=AKIAxxxxxxxxxxxxxxxx
