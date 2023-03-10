@@ -14,6 +14,12 @@ type Plugins struct {
 	plugins map[string]Plugin
 }
 
+type Content struct {
+	Content string
+
+	Source string
+}
+
 func NewPlugins() *Plugins {
 	return &Plugins{}
 }
@@ -22,8 +28,8 @@ func (P *Plugins) AddPlugin(name string, url string, email string, token string)
 	P.plugins["name"] = Plugin{name: name, url: url, email: email, token: token}
 }
 
-func (P *Plugins) RunPlugins() []string {
-	contents := []string{}
+func (P *Plugins) RunPlugins() []Content {
+	contents := []Content{}
 	for _, p := range P.plugins {
 		switch p.name {
 		case "confluence":

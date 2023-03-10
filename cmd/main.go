@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"2ms/Reporting"
 	"2ms/plugins"
 	"2ms/wrapper"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -46,13 +46,18 @@ func runDetection(cmd *cobra.Command, args []string) {
 		plugins.AddPlugin("confluence", confluence, confluenceUser, confluenceToken)
 	}
 
+	contents := plugins.RunPlugins()
+
+	report := Reporting.Report{}
+
 	// Run with default configuration
 	if allRules {
 		wrap := wrapper.NewWrapper()
 
-		for find := range wrap.Detect("sfafaf") {
-			fmt.Println(find)
+		for _, c := range contents {
+			for find := range wrap.Detect(c.Content) {
+				report.AddSecret(c.Source, Reporting.Secret{Description: find.Description, StartLine: find.StartLine, StartColumn: find.StartColumn, EndLine: find.EndLine, EndColumn: find.EndColumn, Value: find.Secret})
+			}
 		}
-
 	}
 }

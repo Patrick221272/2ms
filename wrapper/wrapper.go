@@ -1,10 +1,11 @@
 package wrapper
 
 import (
+	"2ms/Reporting"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
-	"github.com/zricethezav/gitleaks/v8/report"
 )
 
 type Wrapper struct {
@@ -29,12 +30,19 @@ func NewWrapper() *Wrapper {
 	}
 }
 
-func (w *Wrapper) Detect(content string) []report.Finding {
+func (w *Wrapper) Detect(content string) []Reporting.Secret {
+
+	var secrets []Reporting.Secret
+
 	fragment := detect.Fragment{
 		Raw: string(content),
 	}
 
-	return w.detector.Detect(fragment)
+	for _, value := range w.detector.Detect(fragment) {
+		secrets = append(secrets, Reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret})
+	}
+
+	return secrets
 }
 
 func loadRules() (error, map[string]config.Rule) {
