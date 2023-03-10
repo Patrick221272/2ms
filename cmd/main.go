@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"2ms/plugins"
 	"2ms/wrapper"
 	"fmt"
 
@@ -15,8 +16,10 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.Flags().BoolP("all", "a", true, "scan all plugins")
-	rootCmd.Flags().BoolP("confluence", "c", false, "scan confluence")
-	rootCmd.Flags().BoolP("all-rules", "r", false, "use all rules")
+	rootCmd.Flags().StringP("confluence", "c", "", "scan confluence url")
+	rootCmd.Flags().StringP("confluence-user", "", "", "confluence username or email")
+	rootCmd.Flags().StringP("confluence-token", "", "", "confluence token")
+	rootCmd.Flags().BoolP("all-rules", "r", true, "use all rules")
 }
 
 func Execute() {
@@ -29,6 +32,18 @@ func runDetection(cmd *cobra.Command, args []string) {
 	allRules, err := cmd.Flags().GetBool("all-rules")
 	if err != nil {
 		panic(err)
+	}
+
+	// Get desired plugins content
+	plugins := plugins.NewPlugins()
+	allPlugins, _ := cmd.Flags().GetBool("all")
+
+	confluence, _ := cmd.Flags().GetString("confluence")
+	confluenceUser, _ := cmd.Flags().GetString("confluence-user")
+	confluenceToken, _ := cmd.Flags().GetString("confluence-token")
+
+	if confluence != "" || allPlugins {
+		plugins.AddPlugin("confluence", confluence, confluenceUser, confluenceToken)
 	}
 
 	// Run with default configuration
