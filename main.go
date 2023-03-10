@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/checkmarx/2ms/Reporting"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -43,19 +44,38 @@ euJzkedHfT9jYTwtEaJ9F/BqKwdhinYoIPudabHs8yZlNim+jysDQfGIIQJAGqlx
 JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 9YbLMpdNGjI4kLWvZwJAJt8Qnbc2ZfS0ianwphoOdB0EwOMKNygjnYx7VoqR9/h1
 4Xgur9w/aLZrLM3DSatR+kL+cVTyDTtgCt9Dc8k48Q==
------END RSA PRIVATE KEY-----`)
+-----END RSA PRIVATE KEY-----
+
+
+
+rdme_hdhehehehehehekjashdlkjedrtyfjaslfjdtyurhgowuhfjkasndlkythbsdfgetfde93
+
+`)
 
 	fragment := detect.Fragment{
-		Raw: rawText,
+		Raw:      rawText,
+		FilePath: "directory\\rawStringAsFile.txt",
 	}
 
 	findings := detector.Detect(fragment)
 
 	fmt.Printf("total secrets found: %v\n", len(findings))
-
+	report := Reporting.Report{}
 	for _, value := range findings {
-		fmt.Printf("secret:\n%s\n", value.Secret)
+		secret := Reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		if len(report.Results) > 0 {
+			_, ok := report.Results[value.File]
+			if ok {
+				report = Reporting.AddSecretToFile(report, value, secret)
+			} else {
+				report = Reporting.CreateNewResult(report, value, secret)
+			}
+		} else {
+			report = Reporting.CreateNewResult(report, value, secret)
+		}
+
 	}
+	Reporting.ShowReport(report)
 
 }
 
