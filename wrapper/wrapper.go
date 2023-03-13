@@ -30,19 +30,21 @@ func NewWrapper() *Wrapper {
 	}
 }
 
-func (w *Wrapper) Detect(content string) []Reporting.Secret {
+func (w *Wrapper) Detect(content string) Reporting.Report {
 
-	var secrets []Reporting.Secret
+	report := Reporting.Report{}
 
 	fragment := detect.Fragment{
 		Raw: string(content),
 	}
 
 	for _, value := range w.detector.Detect(fragment) {
-		secrets = append(secrets, Reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret})
+		secret := Reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		filePath := value.File
+		report.AddSecret(filePath, secret)
 	}
 
-	return secrets
+	return report
 }
 
 func loadRules() (error, map[string]config.Rule) {

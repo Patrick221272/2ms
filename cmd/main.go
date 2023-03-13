@@ -55,9 +55,8 @@ func runDetection(cmd *cobra.Command, args []string) {
 		wrap := wrapper.NewWrapper()
 
 		for _, c := range contents {
-			for find := range wrap.Detect(c.Content) {
-				report.AddSecret(c.Source, Reporting.Secret{Description: find.Description, StartLine: find.StartLine, StartColumn: find.StartColumn, EndLine: find.EndLine, EndColumn: find.EndColumn, Value: find.Secret})
-			}
+			report = wrap.Detect(c.Content)
 		}
 	}
+	Reporting.ShowReport(report)
 }
