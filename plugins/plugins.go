@@ -21,7 +21,8 @@ type Content struct {
 }
 
 func NewPlugins() *Plugins {
-	return &Plugins{}
+	plugins := make(map[string]Plugin)
+	return &Plugins{plugins: plugins}
 }
 
 func (P *Plugins) AddPlugin(name string, url string, email string, token string) {

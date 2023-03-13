@@ -36,13 +36,13 @@ func runDetection(cmd *cobra.Command, args []string) {
 
 	// Get desired plugins content
 	plugins := plugins.NewPlugins()
-	allPlugins, _ := cmd.Flags().GetBool("all")
+	//allPlugins, _ := cmd.Flags().GetBool("all")
 
 	confluence, _ := cmd.Flags().GetString("confluence")
 	confluenceUser, _ := cmd.Flags().GetString("confluence-user")
 	confluenceToken, _ := cmd.Flags().GetString("confluence-token")
 
-	if confluence != "" || allPlugins {
+	if confluence != "" {
 		plugins.AddPlugin("confluence", confluence, confluenceUser, confluenceToken)
 	}
 

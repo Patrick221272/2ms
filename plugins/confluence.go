@@ -50,7 +50,8 @@ func (P *Plugin) getContent(page Page) Content {
 func HttpRequest(httpmethod string, uri string, email string, token string) []byte {
 	var resp *http.Response
 	var err error
-	if email != "" && token != "" {
+
+	if email == "" && token == "" {
 		resp, err = NonAuthenticatedHttpRequest(httpmethod, uri)
 	} else {
 		resp, err = AuthenticatedHttpRequest(httpmethod, uri, email, token)
