@@ -32,7 +32,8 @@ func NewWrapper() *Wrapper {
 
 func (w *Wrapper) Detect(content string) Reporting.Report {
 
-	report := Reporting.Report{}
+	secrets := make(map[string][]Reporting.Secret)
+	report := Reporting.Report{Results: secrets}
 
 	fragment := detect.Fragment{
 		Raw: string(content),

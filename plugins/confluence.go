@@ -23,6 +23,7 @@ func (P *Plugin) getSpaces() []Space_Result {
 	data_obj := Space_Response{}
 	jsonErr := json.Unmarshal(resp, &data_obj)
 	if jsonErr != nil {
+		// TODO Log.Fatal unauthorized
 		panic(jsonErr)
 	}
 
