@@ -2,7 +2,6 @@ package Reporting
 
 import (
 	"fmt"
-	"github.com/zricethezav/gitleaks/v8/report"
 	"strings"
 )
 
@@ -29,14 +28,14 @@ func generateResultsReport(results map[string][]Secret) {
 	}
 }
 
-func AddSecretToFile(report Report, value report.Finding, secret Secret) Report {
-	report.Results[value.File] = append(report.Results[value.File], secret)
+func AddSecretToFile(report Report, filePath string, secret Secret) Report {
+	report.Results[filePath] = append(report.Results[filePath], secret)
 	return report
 }
 
-func CreateNewResult(report Report, value report.Finding, secret Secret) Report {
+func CreateNewResult(report Report, filePath string, secret Secret) Report {
 	results := make(map[string][]Secret)
-	results[value.File] = append(results[value.File], secret)
+	results[filePath] = append(results[filePath], secret)
 	report.Results = results
 	return report
 }

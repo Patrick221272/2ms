@@ -63,15 +63,17 @@ rdme_hdhehehehehehekjashdlkjedrtyfjaslfjdtyurhgowuhfjkasndlkythbsdfgetfde93
 	report := Reporting.Report{}
 	for _, value := range findings {
 		secret := Reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		filePath := value.File
 		if len(report.Results) > 0 {
-			_, ok := report.Results[value.File]
+
+			_, ok := report.Results[filePath]
 			if ok {
-				report = Reporting.AddSecretToFile(report, value, secret)
+				report = Reporting.AddSecretToFile(report, filePath, secret)
 			} else {
-				report = Reporting.CreateNewResult(report, value, secret)
+				report = Reporting.CreateNewResult(report, filePath, secret)
 			}
 		} else {
-			report = Reporting.CreateNewResult(report, value, secret)
+			report = Reporting.CreateNewResult(report, filePath, secret)
 		}
 
 	}
