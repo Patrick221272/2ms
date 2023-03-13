@@ -8,7 +8,7 @@ import (
 func ShowReport(report Report) {
 	fmt.Println("Summary:")
 	fmt.Printf("- Total items scanned: %d\n", 1)
-	fmt.Printf("- Total items with secrets: %d\n", 1)
+	fmt.Printf("- Total items with secrets: %d\n", len(report.Results))
 	fmt.Println("Detailed Report:")
 	generateResultsReport(report.Results)
 
