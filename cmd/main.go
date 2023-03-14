@@ -41,7 +41,6 @@ func runDetection(cmd *cobra.Command, args []string) {
 	confluence, _ := cmd.Flags().GetString("confluence")
 	confluenceUser, _ := cmd.Flags().GetString("confluence-user")
 	confluenceToken, _ := cmd.Flags().GetString("confluence-token")
-
 	if confluence != "" {
 		plugins.AddPlugin("confluence", confluence, confluenceUser, confluenceToken)
 	}
@@ -58,9 +57,10 @@ func runDetection(cmd *cobra.Command, args []string) {
 		for _, c := range contents {
 			secrets := wrap.Detect(c.Content)
 			for _, secret := range secrets {
-				report.Results[c.Source] = append(report.Results[c.Source], secret)
+				report.Results[c.OriginalUrl] = append(report.Results[c.OriginalUrl], secret)
 			}
 		}
+		report.TotalItemsScanned = len(contents)
 	}
 	Reporting.ShowReport(report)
 }
