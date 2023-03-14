@@ -49,13 +49,17 @@ func runDetection(cmd *cobra.Command, args []string) {
 	contents := plugins.RunPlugins()
 
 	report := Reporting.Report{}
+	report.Results = make(map[string][]Reporting.Secret)
 
 	// Run with default configuration
 	if allRules {
 		wrap := wrapper.NewWrapper()
 
 		for _, c := range contents {
-			report = wrap.Detect(c.Content)
+			secrets := wrap.Detect(c.Content)
+			for _, secret := range secrets {
+				report.Results[c.Source] = append(report.Results[c.Source], secret)
+			}
 		}
 	}
 	Reporting.ShowReport(report)

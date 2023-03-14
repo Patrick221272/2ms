@@ -51,7 +51,7 @@ func (R *Report) CreateNewResult(source string, secret Secret) {
 }
 
 func getItemId(fullPath string) string {
-	itemLinkStrings := strings.Split(fullPath, "\\")
+	itemLinkStrings := strings.Split(fullPath, "/")
 	itemLink := itemLinkStrings[len(itemLinkStrings)-1]
 	return itemLink
 }
