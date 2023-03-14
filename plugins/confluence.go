@@ -14,7 +14,7 @@ func (P *Plugin) RunPlugin() []Content {
 
 	for _, space := range P.getTotalSpaces() {
 		for _, page := range P.getTotalPages(space).Pages {
-			contents = append(contents, P.getContent(page))
+			contents = append(contents, P.getContent(page, space))
 		}
 	}
 
@@ -79,7 +79,7 @@ func (P *Plugin) getPages(space Space_Result, start int) Page_Result {
 }
 
 func (P *Plugin) getContent(page Page, space Space_Result) Content {
-	source := P.url + "rest/api/content/" + page.ID + "?expand=body.storage"
+	source := P.url + "rest/api/content/" + page.ID + "?expand=body.storage,body.view.value,version,history.previousVersion"
 	originalUrl := P.url + "spaces/" + space.Key + "/pages/" + page.ID
 	return Content{Content: string(HttpRequest("GET", source, P.email, P.token)), Source: source, OriginalUrl: originalUrl}
 }

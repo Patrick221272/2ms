@@ -24,6 +24,7 @@ func init() {
 	rootCmd.Flags().StringP("confluence-user", "", "", "confluence username or email")
 	rootCmd.Flags().StringP("confluence-token", "", "", "confluence token")
 	rootCmd.Flags().BoolP("all-rules", "r", true, "use all rules")
+	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level (trace, debug, info, warn, error, fatal)")
 }
 
 func initLog() {
