@@ -4,7 +4,10 @@ import (
 	"2ms/Reporting"
 	"2ms/plugins"
 	"2ms/wrapper"
+	"strings"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +18,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	cobra.OnInitialize(initLog)
 	rootCmd.Flags().BoolP("all", "a", true, "scan all plugins")
 	rootCmd.Flags().StringP("confluence", "c", "", "scan confluence url")
 	rootCmd.Flags().StringP("confluence-user", "", "", "confluence username or email")
@@ -22,16 +26,40 @@ func init() {
 	rootCmd.Flags().BoolP("all-rules", "r", true, "use all rules")
 }
 
+func initLog() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	ll, err := rootCmd.Flags().GetString("log-level")
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+	switch strings.ToLower(ll) {
+	case "trace":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "err", "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case "fatal":
+		zerolog.SetGlobalLevel(zerolog.FatalLevel)
+	default:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 }
 
 func runDetection(cmd *cobra.Command, args []string) {
 	allRules, err := cmd.Flags().GetBool("all-rules")
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	// Get desired plugins content

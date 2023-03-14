@@ -2,44 +2,80 @@ package plugins
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 func (P *Plugin) RunPlugin() []Content {
 	contents := []Content{}
-	for _, space := range P.getSpaces() {
-		for _, page := range P.getPages(space) {
+
+	for _, space := range P.getTotalSpaces() {
+		for _, page := range P.getTotalPages(space).Pages {
 			contents = append(contents, P.getContent(page))
 		}
 	}
 
+	log.Info().Msg("Confluence plugin completed successfully")
+
 	return contents
 }
 
-func (P *Plugin) getSpaces() []Space_Result {
-	resp := HttpRequest("GET", P.url+"rest/api/space", P.email, P.token)
+func (P *Plugin) getTotalSpaces() []Space_Result {
+	totalSpaces := P.getSpaces(0)
+	actualSize := totalSpaces.Size
+
+	for actualSize != 0 {
+		moreSpaces := P.getSpaces(totalSpaces.Size)
+		totalSpaces.Results = append(totalSpaces.Results, moreSpaces.Results...)
+		totalSpaces.Size += moreSpaces.Size
+		actualSize = moreSpaces.Size
+	}
+
+	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
+
+	return totalSpaces.Results
+}
+
+func (P *Plugin) getSpaces(start int) Space_Response {
+	resp := HttpRequest("GET", fmt.Sprintf("%srest/api/space?start=%d", P.url, start), P.email, P.token)
 
 	data_obj := Space_Response{}
 	jsonErr := json.Unmarshal(resp, &data_obj)
 	if jsonErr != nil {
-		// TODO Log.Fatal unauthorized
-		panic(jsonErr)
+		log.Fatal().Msg("Unauthorized!")
 	}
 
-	return data_obj.Results
+	return data_obj
 }
 
-func (P *Plugin) getPages(space Space_Result) []Page {
-	resp := HttpRequest("GET", P.url+"rest/api/space/"+space.Key+"/content?limit=90", P.email, P.token)
+func (P *Plugin) getTotalPages(space Space_Result) Page_Result {
+	totalPages := P.getPages(space, 0)
+	actualSize := len(totalPages.Pages)
+
+	for actualSize != 0 {
+		morePages := P.getPages(space, len(totalPages.Pages))
+		totalPages.Pages = append(totalPages.Pages, morePages.Pages...)
+		actualSize = len(morePages.Pages)
+	}
+
+	log.Info().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
+
+	return totalPages
+}
+
+func (P *Plugin) getPages(space Space_Result, start int) Page_Result {
+	resp := HttpRequest("GET", fmt.Sprintf("%srest/api/space/%s/content?start=%d", P.url, space.Key, start), P.email, P.token)
 
 	pages_obj := Page_Response{}
 	jsonErr := json.Unmarshal(resp, &pages_obj)
 	if jsonErr != nil {
-		panic(jsonErr)
+		log.Fatal().Msg("Unauthorized!")
 	}
 
-	return pages_obj.Results.Pages
+	return pages_obj.Results
 }
 
 func (P *Plugin) getContent(page Page) Content {
@@ -62,7 +98,7 @@ func HttpRequest(httpmethod string, uri string, email string, token string) []by
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg("Unauthorized!")
 	}
 
 	return body
@@ -74,7 +110,7 @@ func NonAuthenticatedHttpRequest(httpmethod string, uri string) (*http.Response,
 	if httpmethod == "GET" {
 		resp, err = http.Get(uri)
 		if err != nil {
-			panic(err)
+			log.Fatal().Msg("Unauthorized!")
 		}
 	}
 
@@ -89,7 +125,7 @@ func AuthenticatedHttpRequest(httpmethod string, uri string, email string, key s
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg("Unauthorized!")
 	}
 
 	return resp, err
@@ -105,6 +141,7 @@ type Space_Result struct {
 
 type Space_Response struct {
 	Results []Space_Result `json:`
+	Size    int            `json:size`
 }
 
 type Page struct {
