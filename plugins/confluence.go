@@ -78,9 +78,10 @@ func (P *Plugin) getPages(space Space_Result, start int) Page_Result {
 	return pages_obj.Results
 }
 
-func (P *Plugin) getContent(page Page) Content {
+func (P *Plugin) getContent(page Page, space Space_Result) Content {
 	source := P.url + "rest/api/content/" + page.ID + "?expand=body.storage"
-	return Content{Content: string(HttpRequest("GET", source, P.email, P.token)), Source: source}
+	originalUrl := P.url + "spaces/" + space.Key + "/pages/" + page.ID
+	return Content{Content: string(HttpRequest("GET", source, P.email, P.token)), Source: source, OriginalUrl: originalUrl}
 }
 
 // Utils

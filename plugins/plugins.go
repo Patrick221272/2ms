@@ -15,9 +15,9 @@ type Plugins struct {
 }
 
 type Content struct {
-	Content string
-
-	Source string
+	Content     string
+	Source      string
+	OriginalUrl string
 }
 
 func NewPlugins() *Plugins {
