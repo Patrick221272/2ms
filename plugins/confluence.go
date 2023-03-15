@@ -19,7 +19,6 @@ func (P *Plugin) RunPlugin() []Content {
 
 	for _, space := range P.getTotalSpaces() {
 		for _, page := range P.getTotalPages(space).Pages {
-			log.Info().Msg("1 added")
 			wg.Add(1)
 			go P.getContent(page, space, contentChan)
 			//contents = append(contents, P.getContent(page, space))
