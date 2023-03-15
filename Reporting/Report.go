@@ -28,28 +28,6 @@ func generateResultsReport(results map[string][]Secret) {
 	}
 }
 
-func (R *Report) AddSecret(source string, secret Secret) {
-	if len(R.Results) > 0 {
-		_, fileExist := R.Results[source]
-		if fileExist {
-			R.AddSecretToFile(source, secret)
-		} else {
-			R.CreateNewResult(source, secret)
-		}
-	}
-	R.Results[source] = append(R.Results[source], secret)
-}
-
-func (R *Report) AddSecretToFile(source string, secret Secret) {
-	R.Results[source] = append(R.Results[source], secret)
-}
-
-func (R *Report) CreateNewResult(source string, secret Secret) {
-	results := make(map[string][]Secret)
-	results[source] = append(results[source], secret)
-	R.Results = results
-}
-
 func getItemId(fullPath string) string {
 	itemLinkStrings := strings.Split(fullPath, "/")
 	itemLink := itemLinkStrings[len(itemLinkStrings)-1]
