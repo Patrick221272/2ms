@@ -14,11 +14,13 @@ func (P *Plugin) RunPlugin() []Content {
 	contents := []Content{}
 
 	contentChan := make(chan Content)
-
+	var wg sync.WaitGroup
 	var mutex sync.Mutex
 
 	for _, space := range P.getTotalSpaces() {
 		for _, page := range P.getTotalPages(space).Pages {
+			log.Info().Msg("1 added")
+			wg.Add(1)
 			go P.getContent(page, space, contentChan)
 			//contents = append(contents, P.getContent(page, space))
 		}
@@ -30,7 +32,9 @@ func (P *Plugin) RunPlugin() []Content {
 		mutex.Lock()
 		contents = append(contents, content)
 		mutex.Unlock()
+		wg.Done()
 	}
+	wg.Wait()
 
 	log.Info().Msgf("Confluence plugin completed successfully. Total of %d items detected", len(contents))
 
