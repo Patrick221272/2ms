@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 )
@@ -12,13 +13,26 @@ import (
 func (P *Plugin) RunPlugin() []Content {
 	contents := []Content{}
 
+	contentChan := make(chan Content)
+
+	var mutex sync.Mutex
+
 	for _, space := range P.getTotalSpaces() {
 		for _, page := range P.getTotalPages(space).Pages {
-			contents = append(contents, P.getContent(page, space))
+			go P.getContent(page, space, contentChan)
+			//contents = append(contents, P.getContent(page, space))
 		}
 	}
 
-	log.Info().Msg("Confluence plugin completed successfully")
+	for range P.getTotalSpaces() {
+		content := <-contentChan
+
+		mutex.Lock()
+		contents = append(contents, content)
+		mutex.Unlock()
+	}
+
+	log.Info().Msgf("Confluence plugin completed successfully. Total of %d items detected", len(contents))
 
 	return contents
 }
@@ -78,10 +92,13 @@ func (P *Plugin) getPages(space Space_Result, start int) Page_Result {
 	return pages_obj.Results
 }
 
-func (P *Plugin) getContent(page Page, space Space_Result) Content {
+func (P *Plugin) getContent(page Page, space Space_Result, contentChan chan Content) Content {
 	source := P.url + "rest/api/content/" + page.ID + "?expand=body.storage,body.view.value,version,history.previousVersion"
 	originalUrl := P.url + "spaces/" + space.Key + "/pages/" + page.ID
-	return Content{Content: string(HttpRequest("GET", source, P.email, P.token)), Source: source, OriginalUrl: originalUrl}
+	content := Content{Content: string(HttpRequest("GET", source, P.email, P.token)), Source: source, OriginalUrl: originalUrl}
+
+	contentChan <- content
+	return content
 }
 
 // Utils
