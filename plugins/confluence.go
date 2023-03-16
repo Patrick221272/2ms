@@ -5,18 +5,26 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
 func (P *Plugin) RunPlugin() []Content {
 	contents := []Content{}
+	start := time.Now()
 
 	for _, space := range P.getTotalSpaces() {
 		for _, page := range P.getTotalPages(space).Pages {
 			contents = append(contents, P.getContent(page, space))
 		}
+		log.Info().Msg(space.Name)
 	}
+
+	fmt.Println("TIME")
+	fmt.Println(time.Since(start))
 
 	log.Info().Msg("Confluence plugin completed successfully")
 
@@ -24,19 +32,36 @@ func (P *Plugin) RunPlugin() []Content {
 }
 
 func (P *Plugin) getTotalSpaces() []Space_Result {
+	var wg sync.WaitGroup
 	totalSpaces := P.getSpaces(0)
-	actualSize := totalSpaces.Size
+	var count int32 = 1
+	var mutex sync.Mutex
 
-	for actualSize != 0 {
-		moreSpaces := P.getSpaces(totalSpaces.Size)
-		totalSpaces.Results = append(totalSpaces.Results, moreSpaces.Results...)
-		totalSpaces.Size += moreSpaces.Size
-		actualSize = moreSpaces.Size
+	for threadCount := 0; threadCount < 4; threadCount++ {
+		wg.Add(1)
+		go P.ThreadGetMoreSpaces(&count, &totalSpaces, &mutex, &wg)
 	}
-
+	wg.Wait()
 	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
 
 	return totalSpaces.Results
+}
+
+func (P *Plugin) ThreadGetMoreSpaces(count *int32, totalSpaces *Space_Response, mutex *sync.Mutex, wg *sync.WaitGroup) {
+	var moreSpaces Space_Response
+	for {
+		atomic.AddInt32(count, 1)
+		lastSpaces := P.getSpaces(int(*count-1) * 25)
+		moreSpaces.Results = append(moreSpaces.Results, lastSpaces.Results...)
+
+		if lastSpaces.Size == 0 {
+			mutex.Lock()
+			totalSpaces.Results = append(totalSpaces.Results, moreSpaces.Results...)
+			mutex.Unlock()
+			wg.Done()
+			break
+		}
+	}
 }
 
 func (P *Plugin) getSpaces(start int) Space_Response {
