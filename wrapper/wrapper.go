@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"2ms/Reporting"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -15,18 +16,19 @@ type Wrapper struct {
 	detector detect.Detector
 }
 
-func NewWrapper() *Wrapper {
+func NewWrapper(rulesFilter []string) *Wrapper {
 
-	_, rulesList := loadRules()
+	_, rulesList := loadAllRules()
+	rulesToBeApplied := getRules(rulesList, rulesFilter)
 
 	cfg := config.Config{
-		Rules: rulesList,
+		Rules: rulesToBeApplied,
 	}
 
 	detector := detect.NewDetector(cfg)
 
 	return &Wrapper{
-		rules:    rulesList,
+		rules:    rulesToBeApplied,
 		detector: *detector,
 	}
 }
@@ -49,7 +51,42 @@ func (w *Wrapper) Detect(content string) []Reporting.Secret {
 	return secrets
 }
 
-func loadRules() (error, map[string]config.Rule) {
+func getRules(rules []*config.Rule, rulesFilter []string) map[string]config.Rule {
+	rulesToBeApplied := make(map[string]config.Rule)
+
+	if isAllFilter(rulesFilter) {
+		// ensure rules have unique ids
+		for _, rule := range rules {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Keywords = []string{}
+			rulesToBeApplied[rule.RuleID] = *rule
+		}
+	} else {
+		var filteredRules []config.Rule
+
+		for _, rule := range rules {
+			rule.Keywords = []string{}
+			for _, filter := range rulesFilter {
+				if strings.Contains(strings.ToLower(rule.Description), filter) {
+					filteredRules = append(filteredRules, *rule)
+					rulesToBeApplied[rule.RuleID] = *rule
+				}
+			}
+		}
+	}
+	return rulesToBeApplied
+}
+
+func isAllFilter(rulesFilter []string) bool {
+	for _, filter := range rulesFilter {
+		if strings.EqualFold(filter, "all") {
+			return true
+		}
+	}
+	return false
+}
+
+func loadAllRules() (error, []*config.Rule) {
 	var configRules []*config.Rule
 
 	configRules = append(configRules, rules.AdafruitAPIKey())
@@ -200,13 +237,5 @@ func loadRules() (error, map[string]config.Rule) {
 	configRules = append(configRules, rules.ZendeskSecretKey())
 	configRules = append(configRules, rules.GenericCredential())
 
-	// ensure rules have unique ids
-	rules := make(map[string]config.Rule)
-	for _, rule := range configRules {
-		// required to be empty when not running via cli. otherwise rule will be ignored
-		rule.Keywords = []string{}
-		rules[rule.RuleID] = *rule
-	}
-
-	return nil, rules
+	return nil, configRules
 }

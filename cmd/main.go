@@ -23,7 +23,7 @@ func init() {
 	rootCmd.Flags().StringP("confluence", "c", "", "scan confluence url")
 	rootCmd.Flags().StringP("confluence-user", "", "", "confluence username or email")
 	rootCmd.Flags().StringP("confluence-token", "", "", "confluence token")
-	rootCmd.Flags().BoolP("all-rules", "r", true, "use all rules")
+	rootCmd.Flags().StringSlice("rules", []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level (trace, debug, info, warn, error, fatal)")
 }
 
@@ -57,10 +57,23 @@ func Execute() {
 	}
 }
 
+func isValidFilter(rulesFilter []string) bool {
+	for _, filter := range rulesFilter {
+		if strings.EqualFold(filter, "all") || strings.EqualFold(filter, "token") || strings.EqualFold(filter, "key") || strings.EqualFold(filter, "id") {
+			return true
+		}
+	}
+	return false
+}
+
 func runDetection(cmd *cobra.Command, args []string) {
-	allRules, err := cmd.Flags().GetBool("all-rules")
+	rulesFilter, err := cmd.Flags().GetStringSlice("rules")
 	if err != nil {
 		log.Fatal().Msg(err.Error())
+	}
+
+	if !isValidFilter(rulesFilter) {
+		log.Fatal().Msg(`rules filter allowed: "all", "token", "id", "key"`)
 	}
 
 	// Get desired plugins content
@@ -81,16 +94,14 @@ func runDetection(cmd *cobra.Command, args []string) {
 	report.Results = make(map[string][]Reporting.Secret)
 
 	// Run with default configuration
-	if allRules {
-		wrap := wrapper.NewWrapper()
+	wrap := wrapper.NewWrapper(rulesFilter)
 
-		for _, c := range contents {
-			secrets := wrap.Detect(c.Content)
-			for _, secret := range secrets {
-				report.Results[c.OriginalUrl] = append(report.Results[c.OriginalUrl], secret)
-			}
+	for _, c := range contents {
+		secrets := wrap.Detect(c.Content)
+		for _, secret := range secrets {
+			report.Results[c.OriginalUrl] = append(report.Results[c.OriginalUrl], secret)
 		}
-		report.TotalItemsScanned = len(contents)
 	}
+	report.TotalItemsScanned = len(contents)
 	Reporting.ShowReport(report)
 }
