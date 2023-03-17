@@ -10,7 +10,7 @@ func ShowReport(report Report) {
 	fmt.Printf("- Total items scanned: %d\n", report.TotalItemsScanned)
 	fmt.Printf("- Total items with secrets: %d\n", len(report.Results))
 	fmt.Println("Detailed Report:")
-	generateResultsReport(report.Results)
+	//generateResultsReport(report.Results)
 
 }
 

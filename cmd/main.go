@@ -5,6 +5,7 @@ import (
 	"2ms/plugins"
 	"2ms/wrapper"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -74,7 +75,7 @@ func runDetection(cmd *cobra.Command, args []string) {
 	if confluence != "" {
 		plugins.AddPlugin("confluence", confluence, confluenceUser, confluenceToken)
 	}
-
+	start := time.Now()
 	contents := plugins.RunPlugins()
 
 	report := Reporting.Report{}
@@ -93,4 +94,6 @@ func runDetection(cmd *cobra.Command, args []string) {
 		report.TotalItemsScanned = len(contents)
 	}
 	Reporting.ShowReport(report)
+	dur := time.Since(start)
+	log.Info().Msgf("Total time of %dh%d", int(dur.Hours()), int(dur.Minutes())) //, dur.Seconds())
 }

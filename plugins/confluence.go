@@ -7,47 +7,44 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
 func (P *Plugin) RunPlugin() []Content {
 	contents := []Content{}
-	start := time.Now()
 
 	for _, space := range P.getTotalSpaces() {
 		for _, page := range P.getTotalPages(space).Pages {
 			contents = append(contents, P.getContent(page, space))
 		}
-		log.Info().Msg(space.Name)
 	}
-
-	fmt.Println("TIME")
-	fmt.Println(time.Since(start))
 
 	log.Info().Msg("Confluence plugin completed successfully")
 
 	return contents
 }
 
-func (P *Plugin) getTotalSpaces() []Space_Result {
-	var wg sync.WaitGroup
+func (P *Plugin) getTotalSpaces() []Space {
 	totalSpaces := P.getSpaces(0)
 	var count int32 = 1
 	var mutex sync.Mutex
+	var wg sync.WaitGroup
 
-	for threadCount := 0; threadCount < 4; threadCount++ {
-		wg.Add(1)
-		go P.ThreadGetMoreSpaces(&count, &totalSpaces, &mutex, &wg)
+	if totalSpaces.Size == 25 {
+		for threadCount := 0; threadCount < 4; threadCount++ {
+			wg.Add(1)
+			go P.ThreadGetSpaces(&count, &totalSpaces, &mutex, &wg)
+		}
 	}
+
 	wg.Wait()
 	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
 
 	return totalSpaces.Results
 }
 
-func (P *Plugin) ThreadGetMoreSpaces(count *int32, totalSpaces *Space_Response, mutex *sync.Mutex, wg *sync.WaitGroup) {
+func (P *Plugin) ThreadGetSpaces(count *int32, totalSpaces *Space_Response, mutex *sync.Mutex, wg *sync.WaitGroup) {
 	var moreSpaces Space_Response
 	for {
 		atomic.AddInt32(count, 1)
@@ -70,28 +67,49 @@ func (P *Plugin) getSpaces(start int) Space_Response {
 	data_obj := Space_Response{}
 	jsonErr := json.Unmarshal(resp, &data_obj)
 	if jsonErr != nil {
-		log.Fatal().Msg("Unauthorized!")
+		log.Info().Msgf("Unauthorized to get spaces. Already got %d spaces")
 	}
 
 	return data_obj
 }
 
-func (P *Plugin) getTotalPages(space Space_Result) Page_Result {
+func (P *Plugin) getTotalPages(space Space) Page_Result {
 	totalPages := P.getPages(space, 0)
-	actualSize := len(totalPages.Pages)
+	var count int32 = 1
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
 
-	for actualSize != 0 {
-		morePages := P.getPages(space, len(totalPages.Pages))
-		totalPages.Pages = append(totalPages.Pages, morePages.Pages...)
-		actualSize = len(morePages.Pages)
+	if len(totalPages.Pages) == 25 {
+		for threadCount := 0; threadCount < 4; threadCount++ {
+			wg.Add(1)
+			go P.ThreadGetPages(space, &count, &totalPages, &mutex, &wg)
+		}
 	}
 
+	wg.Wait()
 	log.Info().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
 
 	return totalPages
 }
 
-func (P *Plugin) getPages(space Space_Result, start int) Page_Result {
+func (P *Plugin) ThreadGetPages(space Space, count *int32, totalPages *Page_Result, mutex *sync.Mutex, wg *sync.WaitGroup) {
+	var morePages Page_Result
+	for {
+		atomic.AddInt32(count, 1)
+		lastPages := P.getPages(space, int(*count-1)*25)
+		morePages.Pages = append(morePages.Pages, lastPages.Pages...)
+
+		if len(lastPages.Pages) == 0 {
+			mutex.Lock()
+			totalPages.Pages = append(totalPages.Pages, morePages.Pages...)
+			mutex.Unlock()
+			wg.Done()
+			break
+		}
+	}
+}
+
+func (P *Plugin) getPages(space Space, start int) Page_Result {
 	resp := HttpRequest("GET", fmt.Sprintf("%srest/api/space/%s/content?start=%d", P.url, space.Key, start), P.email, P.token)
 
 	pages_obj := Page_Response{}
@@ -103,7 +121,7 @@ func (P *Plugin) getPages(space Space_Result, start int) Page_Result {
 	return pages_obj.Results
 }
 
-func (P *Plugin) getContent(page Page, space Space_Result) Content {
+func (P *Plugin) getContent(page Page, space Space) Content {
 	source := P.url + "rest/api/content/" + page.ID + "?expand=body.storage,body.view.value,version,history.previousVersion"
 	originalUrl := P.url + "spaces/" + space.Key + "/pages/" + page.ID
 	return Content{Content: string(HttpRequest("GET", source, P.email, P.token)), Source: source, OriginalUrl: originalUrl}
@@ -158,7 +176,7 @@ func AuthenticatedHttpRequest(httpmethod string, uri string, email string, key s
 }
 
 // Responses Structs
-type Space_Result struct {
+type Space struct {
 	ID    int               `json:"id"`
 	Key   string            `json:"key"`
 	Name  string            `json:"name"`
@@ -166,8 +184,8 @@ type Space_Result struct {
 }
 
 type Space_Response struct {
-	Results []Space_Result `json:`
-	Size    int            `json:size`
+	Results []Space `json:`
+	Size    int     `json:size`
 }
 
 type Page struct {
