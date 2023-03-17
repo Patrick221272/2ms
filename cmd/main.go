@@ -85,13 +85,10 @@ func runDetection(cmd *cobra.Command, args []string) {
 	if allRules {
 		wrap := wrapper.NewWrapper()
 
-		for _, c := range contents {
-			secrets := wrap.Detect(c.Content)
-			for _, secret := range secrets {
-				report.Results[c.OriginalUrl] = append(report.Results[c.OriginalUrl], secret)
-			}
-		}
+		startScans := time.Now()
+		report.Results = wrap.RunScans(contents)
 		report.TotalItemsScanned = len(contents)
+		log.Info().Msgf("Scan duration - %d:%d:%d", int(time.Since(startScans).Hours()), int(time.Since(startScans).Minutes()), int(time.Since(startScans).Seconds()))
 	}
 	Reporting.ShowReport(report)
 	dur := time.Since(start)

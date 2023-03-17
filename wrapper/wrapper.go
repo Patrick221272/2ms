@@ -2,6 +2,8 @@ package wrapper
 
 import (
 	"2ms/Reporting"
+	"2ms/plugins"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -29,6 +31,27 @@ func NewWrapper() *Wrapper {
 		rules:    rulesList,
 		detector: *detector,
 	}
+}
+
+func (w *Wrapper) RunScans(contents []plugins.Content) map[string][]Reporting.Secret {
+	results := make(map[string][]Reporting.Secret)
+	var wg sync.WaitGroup
+	limit := make(chan struct{}, 5)
+	for _, c := range contents {
+		limit <- struct{}{}
+		wg.Add(1)
+		go func() {
+			secrets := w.Detect(c.Content)
+			for _, secret := range secrets {
+				results[c.OriginalUrl] = append(results[c.OriginalUrl], secret)
+			}
+			<-limit
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	return results
 }
 
 func (w *Wrapper) Detect(content string) []Reporting.Secret {

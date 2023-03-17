@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -14,11 +15,29 @@ import (
 func (P *Plugin) RunPlugin() []Content {
 	contents := []Content{}
 
-	for _, space := range P.getTotalSpaces() {
-		for _, page := range P.getTotalPages(space).Pages {
-			contents = append(contents, P.getContent(page, space))
+	var wg sync.WaitGroup
+
+	start := time.Now()
+	spaces := P.getTotalSpaces()
+	log.Info().Msgf("Time to get all spaces with concurrency - %d ms", int(time.Since(start).Milliseconds()))
+
+	start = time.Now()
+	for _, space := range spaces {
+		limit := make(chan struct{}, 5)
+		pages := P.getTotalPages(space).Pages
+		for _, p := range pages {
+			limit <- struct{}{}
+			wg.Add(1)
+			go func() {
+				content := P.getContent(p, space)
+				contents = append(contents, content)
+				<-limit
+				wg.Done()
+			}()
 		}
+		wg.Wait()
 	}
+	log.Info().Msgf("Time to get all pages with concurrency - %d:%d:%d", int(time.Since(start).Hours()), int(time.Since(start).Minutes()), int(time.Since(start).Seconds()))
 
 	log.Info().Msg("Confluence plugin completed successfully")
 
@@ -80,7 +99,7 @@ func (P *Plugin) getTotalPages(space Space) Page_Result {
 	var wg sync.WaitGroup
 
 	if len(totalPages.Pages) == 25 {
-		for threadCount := 0; threadCount < 4; threadCount++ {
+		for threadCount := 0; threadCount < 20; threadCount++ {
 			wg.Add(1)
 			go P.ThreadGetPages(space, &count, &totalPages, &mutex, &wg)
 		}
