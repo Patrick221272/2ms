@@ -59,11 +59,11 @@ func Execute() {
 
 func isValidFilter(rulesFilter []string) bool {
 	for _, filter := range rulesFilter {
-		if strings.EqualFold(filter, "all") || strings.EqualFold(filter, "token") || strings.EqualFold(filter, "key") || strings.EqualFold(filter, "id") {
-			return true
+		if !(strings.EqualFold(filter, "all") || strings.EqualFold(filter, "token") || strings.EqualFold(filter, "key") || strings.EqualFold(filter, "id")) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func runDetection(cmd *cobra.Command, args []string) {
@@ -73,7 +73,7 @@ func runDetection(cmd *cobra.Command, args []string) {
 	}
 
 	if !isValidFilter(rulesFilter) {
-		log.Fatal().Msg(`rules filter allowed: "all", "token", "id", "key"`)
+		log.Fatal().Msg(`rules filter allowed: "all", "token", "id", "key"`) //missing input from Bryant
 	}
 
 	// Get desired plugins content
