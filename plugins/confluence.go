@@ -16,6 +16,7 @@ const argConfluenceSpaces = "confluence-spaces"
 const argConfluenceUsername = "confluence-username"
 const argConfluenceToken = "confluence-token"
 const argConfluenceHistory = "history"
+const defaultConfluenceWindow = 25
 
 type ConfluencePlugin struct {
 	Plugin
@@ -65,7 +66,30 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 
 func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 	items := make([]Item, 0)
-	spaces, err := p.getTotalSpaces()
+	spacesChan := make(chan []ConfluenceSpaceResult)
+
+	go p.getTotalSpacesbyChannel(spacesChan)
+
+	for spaces := range spacesChan {
+		log.Debug().Msgf("Spaces len %d", len(spaces))
+		for _, space := range spaces {
+			spacePages, err := p.getTotalPages(space)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, page := range spacePages.Pages {
+				pageContent, err := p.getContents(page, space)
+				if err != nil {
+					return nil, err
+				}
+
+				items = append(items, *pageContent...)
+			}
+		}
+	}
+
+	/*spaces, err := p.getTotalSpaces()
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +108,27 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 
 			items = append(items, *pageContent...)
 		}
-	}
+	}*/
 
 	log.Debug().Msg("Confluence plugin completed successfully")
 	return &items, nil
+}
+
+func (p *ConfluencePlugin) getTotalSpacesbyChannel(spacesChan chan []ConfluenceSpaceResult) {
+	totalSpaces, _ := p.getSpaces(0)
+	spacesChan <- totalSpaces.Results
+
+	actualSize := totalSpaces.Size
+
+	if totalSpaces.Size == defaultConfluenceWindow {
+		for actualSize != 0 {
+			moreSpaces, _ := p.getSpaces(totalSpaces.Size)
+			spacesChan <- moreSpaces.Results
+			actualSize = moreSpaces.Size
+		}
+	}
+
+	close(spacesChan)
 }
 
 func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
@@ -245,7 +286,7 @@ func (p *ConfluencePlugin) getContentbyVersion(page ConfluencePage, version int)
 
 func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error) {
 	var err error
-	log.Info().Msg(url)
+
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
