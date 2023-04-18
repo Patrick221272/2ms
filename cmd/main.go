@@ -4,12 +4,12 @@ import (
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
-	"os"
-	"strings"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"os"
+	"strings"
+	"sync/atomic"
 )
 
 var rootCmd = &cobra.Command{
@@ -89,7 +89,16 @@ func execute(cmd *cobra.Command, args []string) {
 	}
 
 	validateTags(tags)
+	secrets := secrets.Init(tags)
 
+	report := reporting.Report{}
+	report.Results = make(map[string][]reporting.Secret)
+	var totalItemsScanned int
+
+	itemsChan := make(chan []plugins.Item, 200)
+	pagesChan := make(chan plugins.ConfluencePageResult, 200)
+	done := make(chan bool)
+	var count int32
 	// -------------------------------------
 	// Get content from plugins
 
@@ -108,40 +117,40 @@ func execute(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	items := make([]plugins.Item, 0)
 	for _, plugin := range allPlugins {
 		if !plugin.IsEnabled() {
 			continue
 		}
 
-		pluginItems, err := plugin.GetItems()
-		if err != nil {
-			log.Fatal().Msg(err.Error())
-		}
-		items = append(items, *pluginItems...)
+		go plugin.GetItems(itemsChan, pagesChan, done, &count)
 	}
-
-	report := reporting.Report{}
-	report.Results = make(map[string][]reporting.Secret)
 
 	// -------------------------------------
 	// Detect Secrets
 
-	secrets := secrets.Init(tags)
+	for items := range itemsChan {
+		atomic.AddInt32(&count, -1)
+		for _, item := range items {
+			secrets := secrets.Detect(item.Content)
+			totalItemsScanned++
+			if len(secrets) > 0 {
+				report.TotalSecretsFound = report.TotalSecretsFound + len(secrets)
+				report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+			}
+		}
 
-	for _, item := range items {
-		secrets := secrets.Detect(item.Content)
-		if len(secrets) > 0 {
-			report.TotalSecretsFound = report.TotalSecretsFound + len(secrets)
-			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+		if count == 0 {
+			done <- true
+			close(itemsChan)
+			close(pagesChan)
 		}
 	}
-	report.TotalItemsScanned = len(items)
+	report.TotalItemsScanned = totalItemsScanned
 
 	// -------------------------------------
 	// Show Report
 
-	if len(items) > 0 {
+	if totalItemsScanned > 0 {
 		reporting.ShowReport(report)
 	} else {
 		log.Error().Msg("Scan completed with empty content")

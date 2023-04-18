@@ -16,6 +16,6 @@ type Plugin struct {
 type IPlugin interface {
 	DefineCommandLineArgs(cmd *cobra.Command) error
 	Initialize(cmd *cobra.Command) error
-	GetItems() (*[]Item, error)
+	GetItems(chan []Item, chan ConfluencePageResult, chan bool, *int32)
 	IsEnabled() bool
 }
